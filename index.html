@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoCloud - Penyimpanan Album Foto Modern</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .masonry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-gap: 1.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen transition-colors duration-200">
+
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="resetFilters()">
+                <div class="bg-gradient-to-tr from-sky-500 to-indigo-600 p-2.5 rounded-xl text-white shadow-md shadow-sky-500/20">
+                    <i class="fa-solid fa-images text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">PhotoCloud</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Galeri & Album Digital</p>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-md hidden sm:block">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Cari judul foto, tag, atau deskripsi..." 
+                        class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700/60 border-0 rounded-xl focus:ring-2 focus:ring-sky-500 dark:text-white placeholder-gray-400 text-sm transition">
+                </div>
+            </div>
+
+            <!-- Actions Right -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="toggleDarkMode()" class="p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition" title="Ubah Tema">
+                    <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
+                </button>
+                
+                <button onclick="openModal('albumModal')" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-semibold transition">
+                    <i class="fa-solid fa-folder-plus text-sky-500"></i>
+                    <span>Album Baru</span>
+                </button>
+
+                <button onclick="openModal('photoModal')" class="flex items-center space-x-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-sky-500/20 transition active:scale-95">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Tambah Foto</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Mobile Search -->
+        <div class="mb-6 sm:hidden">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="mobileSearchInput" oninput="handleSearch('mobile')" placeholder="Cari foto..." 
+                    class="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-sky-500 text-sm">
+            </div>
+        </div>
+
+        <!-- Dashboard Stats Cards -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 rounded-xl">
+                    <i class="fa-solid fa-image text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Foto</p>
+                    <h3 id="statTotalPhotos" class="text-xl font-bold text-gray-800 dark:text-gray-100">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                    <i class="fa-solid fa-folder text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Total Album</p>
+                    <h3 id="statTotalAlbums" class="text-xl font-bold text-gray-800 dark:text-gray-100">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400 rounded-xl">
+                    <i class="fa-solid fa-heart text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Favorit</p>
+                    <h3 id="statFavorites" class="text-xl font-bold text-gray-800 dark:text-gray-100">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                    <i class="fa-solid fa-cloud text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Koneksi Database</p>
+                    <h3 id="statStorage" class="text-xs font-bold text-emerald-600 dark:text-emerald-400">Terhubung</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- Albums Selector Bar -->
+        <section class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-sky-500"></i> Kategori & Album
+                </h2>
+                <button onclick="openModal('albumModal')" class="md:hidden text-xs text-sky-600 dark:text-sky-400 font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-plus"></i> Album Baru
+                </button>
+            </div>
+
+            <div id="albumsContainer" class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                <!-- Albums chips dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Photos Section Header -->
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 id="galleryTitle" class="text-xl font-bold text-gray-800 dark:text-gray-100">Semua Foto</h2>
+                <p id="gallerySubtitle" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Menampilkan semua koleksi gambar Anda</p>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <select id="sortSelect" onchange="renderGallery()" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-sky-500">
+                    <option value="newest">Terbaru</option>
+                    <option value="oldest">Terlama</option>
+                    <option value="title">Judul (A-Z)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Photos Gallery Grid -->
+        <div id="photosGrid" class="masonry-grid">
+            <!-- Dynamic Photo Items Rendering -->
+        </div>
+
+        <!-- Empty State View -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center">
+            <div class="w-24 h-24 bg-sky-50 dark:bg-gray-800 rounded-full flex items-center justify-center text-sky-500 text-4xl mb-4 shadow-inner">
+                <i class="fa-regular fa-image"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Belum ada foto dalam galeri</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mt-1 mb-6">Mulai tambahkan foto kenangan Anda atau ciptakan album baru untuk mengelompokkannya.</p>
+            <button onclick="openModal('photoModal')" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-xl shadow-md transition">
+                <i class="fa-solid fa-plus mr-1"></i> Tambahkan Foto Pertama
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL: Tambah Foto -->
+    <div id="photoModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <i class="fa-solid fa-upload text-sky-500"></i> Tambah Foto Baru
+                </h3>
+                <button onclick="closeModal('photoModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="photoForm" onsubmit="handlePhotoSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Judul Foto *</label>
+                    <input type="text" id="photoTitle" required placeholder="misal: Liburan Pantai Bali" 
+                        class="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none dark:text-white">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Pilih Album</label>
+                    <select id="photoAlbumSelect" class="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none dark:text-white">
+                        <option value="umum">Umum</option>
+                    </select>
+                </div>
+
+                <!-- Source Option Tabs -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Sumber Gambar</label>
+                    <div class="flex gap-2 mb-2">
+                        <button type="button" id="tabUrlBtn" onclick="switchPhotoTab('url')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white">URL Web</button>
+                        <button type="button" id="tabFileBtn" onclick="switchPhotoTab('file')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">File Lokal</button>
+                    </div>
+
+                    <!-- Input URL -->
+                    <div id="tabUrlInput">
+                        <input type="url" id="photoUrl" placeholder="https://images.unsplash.com/..." 
+                            class="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none dark:text-white">
+                        <p class="text-[11px] text-gray-400 mt-1">Gunakan link langsung gambar dari internet.</p>
+                    </div>
+
+                    <!-- Input File -->
+                    <div id="tabFileInput" class="hidden">
+                        <input type="file" id="photoFileInput" accept="image/*" onchange="handleFileSelect(event)"
+                            class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Preview Area -->
+                <div id="imagePreviewContainer" class="hidden relative rounded-xl overflow-hidden h-36 bg-gray-100 dark:bg-gray-700 border border-dashed border-gray-300 dark:border-gray-600">
+                    <img id="imagePreview" class="w-full h-full object-cover">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Deskripsi / Catatan</label>
+                    <textarea id="photoDesc" rows="2" placeholder="Catatan singkat tentang foto ini..." 
+                        class="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none dark:text-white"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('photoModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-md">Simpan Foto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Buat Album Baru -->
+    <div id="albumModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-plus text-sky-500"></i> Album Baru
+                </h3>
+                <button onclick="closeModal('albumModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="albumForm" onsubmit="handleAlbumSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Nama Album *</label>
+                    <input type="text" id="albumName" required placeholder="misal: Liburan 2026, Wisuda" 
+                        class="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-sky-500 outline-none dark:text-white">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Pilih Ikon</label>
+                    <div class="grid grid-cols-5 gap-2" id="iconPicker">
+                        <!-- Icons rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('albumModal')" class="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-md">Buat Album</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Lightbox Preview Foto -->
+    <div id="lightboxModal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden">
+        <button onclick="closeModal('lightboxModal')" class="absolute top-4 right-4 text-white/70 hover:text-white p-2 text-2xl z-10">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="max-w-4xl w-full flex flex-col md:flex-row bg-gray-900 rounded-2xl overflow-hidden shadow-2xl max-h-[90vh]">
+            <!-- Image Area -->
+            <div class="flex-1 bg-black flex items-center justify-center relative min-h-[300px]">
+                <img id="lightboxImg" class="max-h-[75vh] w-auto object-contain">
+            </div>
+
+            <!-- Details Sidebar -->
+            <div class="w-full md:w-80 p-6 flex flex-col justify-between border-t md:border-t-0 md:border-l border-gray-800 bg-gray-900 text-white">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="lightboxAlbumTag" class="px-2.5 py-1 bg-sky-500/20 text-sky-400 text-[10px] font-bold rounded-full uppercase tracking-wider">Album</span>
+                        <button id="lightboxFavBtn" onclick="toggleFavoriteFromLightbox()" class="text-gray-400 hover:text-pink-500 transition">
+                            <i class="fa-solid fa-heart text-lg"></i>
+                        </button>
+                    </div>
+
+                    <h3 id="lightboxTitle" class="text-xl font-bold text-white mb-2"></h3>
+                    <p id="lightboxDesc" class="text-sm text-gray-400 font-light mb-4 whitespace-pre-line"></p>
+                    <p id="lightboxDate" class="text-xs text-gray-500"></p>
+                </div>
+
+                <div class="pt-6 border-t border-gray-800 flex items-center justify-between">
+                    <a id="lightboxDownloadBtn" download href="#" target="_blank" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-xs font-semibold text-gray-200 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Unduh
+                    </a>
+                    <button id="lightboxDeleteBtn" onclick="deletePhotoFromLightbox()" class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage" class="text-sm font-medium">Pesan notifikasi</span>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'photocloud-app';
+        
+        let firebaseConfig = {
+            apiKey: "demo-api-key",
+            authDomain: "demo.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:123456"
+        };
+
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+            try {
+                firebaseConfig = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
+            } catch (err) {
+                console.warn("Gagal membaca konfigurasi Firebase, menggunakan konfigurasi fallback:", err);
+            }
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Application State
+        window.state = {
+            photos: [],
+            albums: [
+                { id: 'umum', name: 'Umum', icon: 'fa-folder' },
+                { id: 'favorit', name: 'Favorit', icon: 'fa-heart' }
+            ],
+            selectedAlbum: 'all',
+            searchQuery: '',
+            currentPhotoId: null,
+            selectedFileBase64: null,
+            selectedIcon: 'fa-folder'
+        };
+
+        const iconsList = ['fa-folder', 'fa-camera', 'fa-heart', 'fa-plane', 'fa-graduation-cap', 'fa-utensils', 'fa-camera-retro', 'fa-tree', 'fa-star', 'fa-user'];
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                setupFirestoreListeners();
+            } catch (err) {
+                console.error("Auth error:", err);
+                const statStorage = document.getElementById('statStorage');
+                if (statStorage) {
+                    statStorage.innerText = 'Lokal (Offline)';
+                    statStorage.classList.replace('text-emerald-600', 'text-amber-500');
+                }
+            }
+        }
+
+        function setupFirestoreListeners() {
+            const photosCol = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+            const albumsCol = collection(db, 'artifacts', appId, 'public', 'data', 'albums');
+
+            // Listen to Photos
+            onSnapshot(photosCol, (snapshot) => {
+                window.state.photos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderGallery();
+                updateStats();
+            }, (error) => {
+                console.warn("Firestore photos listener error:", error);
+            });
+
+            // Listen to Albums
+            onSnapshot(albumsCol, (snapshot) => {
+                const fetchedAlbums = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.state.albums = [
+                    { id: 'umum', name: 'Umum', icon: 'fa-folder' },
+                    { id: 'favorit', name: 'Favorit', icon: 'fa-heart' },
+                    ...fetchedAlbums
+                ];
+                renderAlbums();
+                populateAlbumDropdown();
+            }, (error) => {
+                console.warn("Firestore albums listener error:", error);
+            });
+        }
+
+        window.onload = function() {
+            initAuth();
+            renderIconPicker();
+            renderAlbums();
+            renderGallery();
+            
+            // Sample Initial Data if empty
+            setTimeout(() => {
+                if(window.state.photos.length === 0) {
+                    addSampleData();
+                }
+            }, 1000);
+        };
+
+        window.renderAlbums = function() {
+            const container = document.getElementById('albumsContainer');
+            if(!container) return;
+
+            let html = `
+                <button onclick="selectAlbum('all')" class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center space-x-2 ${window.state.selectedAlbum === 'all' ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50'}">
+                    <i class="fa-solid fa-border-all"></i>
+                    <span>Semua Foto</span>
+                </button>
+            `;
+
+            window.state.albums.forEach(album => {
+                const isActive = window.state.selectedAlbum === album.id;
+                html += `
+                    <button onclick="selectAlbum('${album.id}')" class="px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center space-x-2 ${isActive ? 'bg-sky-600 text-white shadow-md shadow-sky-500/20' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50'}">
+                        <i class="fa-solid ${album.icon || 'fa-folder'}"></i>
+                        <span>${album.name}</span>
+                    </button>
+                `;
+            });
+
+            container.innerHTML = html;
+        };
+
+        window.renderGallery = function() {
+            const grid = document.getElementById('photosGrid');
+            const empty = document.getElementById('emptyState');
+            const sortSelect = document.getElementById('sortSelect');
+            const sortVal = sortSelect ? sortSelect.value : 'newest';
+
+            let filtered = [...window.state.photos];
+
+            // Filter Album
+            if (window.state.selectedAlbum === 'favorit') {
+                filtered = filtered.filter(p => p.isFavorite);
+            } else if (window.state.selectedAlbum !== 'all') {
+                filtered = filtered.filter(p => p.albumId === window.state.selectedAlbum);
+            }
+
+            // Filter Search
+            if (window.state.searchQuery) {
+                const q = window.state.searchQuery.toLowerCase();
+                filtered = filtered.filter(p => 
+                    (p.title && p.title.toLowerCase().includes(q)) || 
+                    (p.desc && p.desc.toLowerCase().includes(q))
+                );
+            }
+
+            // Sorting
+            filtered.sort((a, b) => {
+                if (sortVal === 'newest') return (b.createdAt || 0) - (a.createdAt || 0);
+                if (sortVal === 'oldest') return (a.createdAt || 0) - (b.createdAt || 0);
+                if (sortVal === 'title') return (a.title || '').localeCompare(b.title || '');
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                empty.classList.add('flex');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            empty.classList.remove('flex');
+
+            grid.innerHTML = filtered.map(photo => `
+                <div class="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer" onclick="openLightbox('${photo.id}')">
+                    <div class="aspect-w-4 aspect-h-3 bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
+                        <img src="${photo.url}" alt="${photo.title}" class="w-full h-56 object-cover group-hover:scale-105 transition duration-500" loading="lazy" onerror="this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Gambar+Gagal+Muat'">
+                        
+                        <!-- Top Actions Overlay -->
+                        <div class="absolute top-3 right-3 flex items-center space-x-1">
+                            <button onclick="event.stopPropagation(); toggleFavorite('${photo.id}')" class="p-2 rounded-full bg-black/40 backdrop-blur-md text-white hover:text-pink-500 transition">
+                                <i class="${photo.isFavorite ? 'fa-solid text-pink-500' : 'fa-regular'} fa-heart text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 uppercase tracking-wider">
+                                ${getAlbumName(photo.albumId)}
+                            </span>
+                            <span class="text-[11px] text-gray-400">${formatDate(photo.createdAt)}</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-100 text-sm truncate">${photo.title}</h4>
+                        ${photo.desc ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 font-light">${photo.desc}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.handlePhotoSubmit = async function(e) {
+            e.preventDefault();
+            const title = document.getElementById('photoTitle').value;
+            const albumId = document.getElementById('photoAlbumSelect').value;
+            const urlInput = document.getElementById('photoUrl').value;
+            const desc = document.getElementById('photoDesc').value;
+
+            let finalUrl = window.state.selectedFileBase64 || urlInput;
+
+            if(!finalUrl) {
+                showToast("Silakan masukkan URL gambar atau pilih file lokal", "error");
+                return;
+            }
+
+            try {
+                const photosCol = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+                await addDoc(photosCol, {
+                    title,
+                    albumId,
+                    url: finalUrl,
+                    desc,
+                    isFavorite: false,
+                    createdAt: Date.now()
+                });
+
+                closeModal('photoModal');
+                resetPhotoForm();
+                showToast("Foto berhasil ditambahkan!");
+            } catch(err) {
+                console.error("Gagal menyimpan foto:", err);
+                showToast("Terjadi kesalahan saat menyimpan foto", "error");
+            }
+        };
+
+        window.handleAlbumSubmit = async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('albumName').value;
+            const icon = window.state.selectedIcon;
+
+            try {
+                const albumsCol = collection(db, 'artifacts', appId, 'public', 'data', 'albums');
+                await addDoc(albumsCol, {
+                    name,
+                    icon,
+                    createdAt: Date.now()
+                });
+
+                closeModal('albumModal');
+                document.getElementById('albumForm').reset();
+                showToast("Album baru berhasil dibuat!");
+            } catch(err) {
+                console.error("Gagal membuat album:", err);
+                showToast("Terjadi kesalahan saat membuat album", "error");
+            }
+        };
+
+        window.toggleFavorite = async function(id) {
+            const photo = window.state.photos.find(p => p.id === id);
+            if (!photo) return;
+
+            try {
+                const photoDoc = doc(db, 'artifacts', appId, 'public', 'data', 'photos', id);
+                await updateDoc(photoDoc, { isFavorite: !photo.isFavorite });
+            } catch(err) {
+                console.error("Gagal memperbarui favorit:", err);
+            }
+        };
+
+        window.toggleFavoriteFromLightbox = function() {
+            if (window.state.currentPhotoId) {
+                toggleFavorite(window.state.currentPhotoId);
+                const photo = window.state.photos.find(p => p.id === window.state.currentPhotoId);
+                if (photo) {
+                    const favBtn = document.getElementById('lightboxFavBtn');
+                    favBtn.innerHTML = `<i class="${!photo.isFavorite ? 'fa-solid text-pink-500' : 'fa-regular'} fa-heart text-lg"></i>`;
+                }
+            }
+        };
+
+        window.deletePhotoFromLightbox = async function() {
+            if (!window.state.currentPhotoId) return;
+
+            try {
+                const photoDoc = doc(db, 'artifacts', appId, 'public', 'data', 'photos', window.state.currentPhotoId);
+                await deleteDoc(photoDoc);
+                closeModal('lightboxModal');
+                showToast("Foto berhasil dihapus!");
+            } catch(err) {
+                console.error("Gagal menghapus foto:", err);
+                showToast("Gagal menghapus foto", "error");
+            }
+        };
+
+        window.openModal = function(id) {
+            document.getElementById(id).classList.remove('hidden');
+        };
+
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.add('hidden');
+        };
+
+        window.openLightbox = function(id) {
+            const photo = window.state.photos.find(p => p.id === id);
+            if (!photo) return;
+
+            window.state.currentPhotoId = id;
+            document.getElementById('lightboxImg').src = photo.url;
+            document.getElementById('lightboxTitle').innerText = photo.title;
+            document.getElementById('lightboxDesc').innerText = photo.desc || 'Tidak ada deskripsi.';
+            document.getElementById('lightboxAlbumTag').innerText = getAlbumName(photo.albumId);
+            document.getElementById('lightboxDate').innerText = 'Diunggah: ' + formatDate(photo.createdAt);
+            document.getElementById('lightboxDownloadBtn').href = photo.url;
+
+            const favBtn = document.getElementById('lightboxFavBtn');
+            favBtn.innerHTML = `<i class="${photo.isFavorite ? 'fa-solid text-pink-500' : 'fa-regular'} fa-heart text-lg"></i>`;
+
+            openModal('lightboxModal');
+        };
+
+        window.selectAlbum = function(albumId) {
+            window.state.selectedAlbum = albumId;
+            renderAlbums();
+            renderGallery();
+
+            const titleEl = document.getElementById('galleryTitle');
+            if (albumId === 'all') titleEl.innerText = 'Semua Foto';
+            else if (albumId === 'favorit') titleEl.innerText = 'Foto Favorit';
+            else {
+                const alb = window.state.albums.find(a => a.id === albumId);
+                titleEl.innerText = alb ? alb.name : 'Album';
+            }
+        };
+
+        window.resetFilters = function() {
+            window.state.searchQuery = '';
+            const input = document.getElementById('searchInput');
+            const mobileInput = document.getElementById('mobileSearchInput');
+            if (input) input.value = '';
+            if (mobileInput) mobileInput.value = '';
+            selectAlbum('all');
+        };
+
+        window.handleSearch = function(type) {
+            const input = type === 'mobile' ? document.getElementById('mobileSearchInput') : document.getElementById('searchInput');
+            window.state.searchQuery = input ? input.value : '';
+            renderGallery();
+        };
+
+        window.handleFileSelect = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                window.state.selectedFileBase64 = evt.target.result;
+                const prev = document.getElementById('imagePreview');
+                prev.src = evt.target.result;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.switchPhotoTab = function(type) {
+            const urlInput = document.getElementById('tabUrlInput');
+            const fileInput = document.getElementById('tabFileInput');
+            const urlBtn = document.getElementById('tabUrlBtn');
+            const fileBtn = document.getElementById('tabFileBtn');
+
+            if(type === 'url') {
+                urlInput.classList.remove('hidden');
+                fileInput.classList.add('hidden');
+                urlBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white";
+                fileBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300";
+            } else {
+                urlInput.classList.add('hidden');
+                fileInput.classList.remove('hidden');
+                fileBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white";
+                urlBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300";
+            }
+        };
+
+        function populateAlbumDropdown() {
+            const select = document.getElementById('photoAlbumSelect');
+            if (!select) return;
+            select.innerHTML = window.state.albums
+                .filter(a => a.id !== 'favorit')
+                .map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+        }
+
+        function renderIconPicker() {
+            const container = document.getElementById('iconPicker');
+            if (!container) return;
+            container.innerHTML = iconsList.map(icon => `
+                <button type="button" onclick="selectIcon('${icon}')" class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-sky-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-center transition icon-choice" data-icon="${icon}">
+                    <i class="fa-solid ${icon}"></i>
+                </button>
+            `).join('');
+        }
+
+        window.selectIcon = function(icon) {
+            window.state.selectedIcon = icon;
+            document.querySelectorAll('.icon-choice').forEach(el => {
+                if(el.dataset.icon === icon) {
+                    el.classList.add('border-sky-500', 'bg-sky-50', 'text-sky-600');
+                } else {
+                    el.classList.remove('border-sky-500', 'bg-sky-50', 'text-sky-600');
+                }
+            });
+        };
+
+        function updateStats() {
+            const totalPhotos = document.getElementById('statTotalPhotos');
+            const totalAlbums = document.getElementById('statTotalAlbums');
+            const statFavs = document.getElementById('statFavorites');
+
+            if (totalPhotos) totalPhotos.innerText = window.state.photos.length;
+            if (totalAlbums) totalAlbums.innerText = Math.max(0, window.state.albums.length - 2);
+            if (statFavs) statFavs.innerText = window.state.photos.filter(p => p.isFavorite).length;
+        }
+
+        window.toggleDarkMode = function() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                if (icon) icon.className = 'fa-solid fa-moon text-lg';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                if (icon) icon.className = 'fa-solid fa-sun text-lg';
+            }
+        };
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const msgEl = document.getElementById('toastMessage');
+
+            if (!toast || !icon || !msgEl) return;
+
+            msgEl.innerText = message;
+            if (type === 'error') {
+                icon.className = "fa-solid fa-circle-exclamation text-red-400 text-lg";
+            } else {
+                icon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function getAlbumName(id) {
+            const alb = window.state.albums.find(a => a.id === id);
+            return alb ? alb.name : 'Umum';
+        }
+
+        function formatDate(timestamp) {
+            if(!timestamp) return '';
+            return new Date(timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function resetPhotoForm() {
+            const form = document.getElementById('photoForm');
+            if (form) form.reset();
+            window.state.selectedFileBase64 = null;
+            const prevContainer = document.getElementById('imagePreviewContainer');
+            if (prevContainer) prevContainer.classList.add('hidden');
+        }
+
+        async function addSampleData() {
+            try {
+                const photosCol = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+                const samples = [
+                    { title: 'Pemandangan Pegunungan', albumId: 'umum', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80', desc: 'Keindahan pegunungan saat pagi hari.', isFavorite: true, createdAt: Date.now() - 100000 },
+                    { title: 'Pantai Tropis', albumId: 'umum', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80', desc: 'Suasana tenang di tepi pantai.', isFavorite: false, createdAt: Date.now() - 50000 }
+                ];
+                for(let s of samples) {
+                    await addDoc(photosCol, s);
+                }
+            } catch(e) {
+                console.warn("Could not insert sample data:", e);
+            }
+        }
+    </script>
+</body>
+</html>
